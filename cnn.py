@@ -77,6 +77,6 @@ output = Dense(1, activation='sigmoid', name='output')(x)
 
 model = Model(inputs=[input1, input2], outputs=[output])
 model.compile(optimizer='rmsprop', loss='binary_crossentropy')
-model.fit({'input1': train_iterator1, 'input2': train_iterator2, 'input_base': train_iterator_base},
+model.fit({'input1': train_iterator1., 'input2': train_iterator2, 'input_base': train_iterator_base},
           {'output': train_iterator_base},
           epochs=10, batch_size=32)
