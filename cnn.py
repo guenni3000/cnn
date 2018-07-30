@@ -6,37 +6,30 @@ from PIL import Image
 import os
 import keras
 
-dir = "C:/Users/Julian/Desktop/dataset"
-max_size = 500
+dir = "C:/Users/Julian/Desktop/dataset/training"
+in_shape = (500, 375, 1)
+file_count = len(os.listdir(os.fsencode(dir)))
 
 def compare(x):
-    img1 = x[0:length(x)]
+    img1 = x[0:len(x)][0:len(x[0])][0]
+    img2 = x[0:len(x)][0:len(x[0])][1]
 
-img = Image.open(dir+'/training1/'+os.fsdecode(os.listdir(os.fsencode(dir+'/training1/'))[0]))
 
-height = img.height
-width = img.width
 
-ratio = (width*1.0)/height
+def get_imgs(path):
+    for file in os.listdir(os.fsencode(path)):
+        filename = os.fsdecode(file)
+        parts = filename.split('_')
+        if parts[1] == '0':
+            out = parts[2][0]
+            img1 = Image.open(path+'/'+filename) 
+            img2 = Image.open(path+'/'+parts[0]+'_1_'+parts[2])
+            img3 = Image.open(path+'/'+parts[0]+'_2_'+parts[2])
+            yield ({'input1': img1.load(), 'input2': img2.load(), 'input_base': img3.load()}, {'output': out})
 
-if height > width:
-    height = max_size
-    width = int(max_size*ratio)
-else:
-    width = max_size
-    height = int(max_size/ratio)
-
-ratio = (img.width*1.0)/img.height
-
-datagen = ImageDataGenerator()
-
-train_iterator_base = datagen.flow_from_directory(dir+'/trainingBase/', target_size=(height, width), color_mode='grayscale', class_mode='binary', shuffle=False)
-train_iterator1 = datagen.flow_from_directory(dir+'/training1/', target_size=(height, width), color_mode='grayscale', class_mode='binary', shuffle=False)
-train_iterator2 = datagen.flow_from_directory(dir+'/training2/', target_size=(height, width), color_mode='grayscale', class_mode='binary', shuffle=False)
-
-input1 = Input(shape=train_iterator1.image_shape, dtype='int32', name='input1')
-input2 = Input(shape=train_iterator2.image_shape, dtype='int32', name='input2')
-input_base = Input(shape=train_iterator_base.image_shape, dtype='int32', name='input_base')
+input1 = Input(shape=in_shape, dtype='int32', name='input1')
+input2 = Input(shape=in_shape, dtype='int32', name='input2')
+input_base = Input(shape=in_shape, dtype='int32', name='input_base')
 
 conv_layer = Conv2D(16, (3, 3), padding='same', activation='relu')
 
@@ -77,6 +70,4 @@ output = Dense(1, activation='sigmoid', name='output')(x)
 
 model = Model(inputs=[input1, input2], outputs=[output])
 model.compile(optimizer='rmsprop', loss='binary_crossentropy')
-model.fit({'input1': train_iterator1., 'input2': train_iterator2, 'input_base': train_iterator_base},
-          {'output': train_iterator_base},
-          epochs=10, batch_size=32)
+model.fit_generator(get_imgs(dir), steps_per_epoch=file_count/8, epochs=10)
