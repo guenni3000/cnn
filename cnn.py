@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from keras.models import Model
 from keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten, Input, Lambda
 from keras.preprocessing.image import ImageDataGenerator
@@ -8,13 +9,27 @@ import keras
 
 dir = "C:/Users/Julian/Desktop/dataset/training"
 in_shape = (500, 375, 1)
+comp_filter_size = 5
+compare_filters = 5
 file_count = len(os.listdir(os.fsencode(dir)))
 
 def compare(x):
-    img1 = x[0:len(x)][0:len(x[0])][0]
-    img2 = x[0:len(x)][0:len(x[0])][1]
+    dims = tf.shape(x)
 
+    imgs1 = x[:][:][:][0:dims[3]/2]
+    imgs2 = x[:][:][:][dims[3]/2:]
 
+    for b in range(dims[0]):
+        img_arr = tf.zeros((0, 0, 0))
+        for i in range(dims[3]/2):
+            img1 = imgs1[b][:][:][i]
+            img2 = imgs2[b][:][:][i]
+
+            for r in range(5):
+                x_coord = dims[1]-comp_filter_size
+                y_coord = dims[2]-comp_filter_size
+    
+    img_new = tf.nn.conv2d(img2, filter)
 
 def get_imgs(path):
     for file in os.listdir(os.fsencode(path)):
@@ -22,14 +37,16 @@ def get_imgs(path):
         parts = filename.split('_')
         if parts[1] == '0':
             out = parts[2][0]
-            img1 = Image.open(path+'/'+filename) 
-            img2 = Image.open(path+'/'+parts[0]+'_1_'+parts[2])
-            img3 = Image.open(path+'/'+parts[0]+'_2_'+parts[2])
-            yield ({'input1': img1.load(), 'input2': img2.load(), 'input_base': img3.load()}, {'output': out})
+            path1 = path+'/'+filename
+            path2 = path+'/'+parts[0]+'_1_'+parts[2]
+            path3 = path+'/'+parts[0]+'_2_'+parts[2]
+            yield ({'input1': tf.image.decode_image(tf.read_file(path1), 1), 
+                    'input2': tf.image.decode_image(tf.read_file(path2), 1), 
+                    'input_base': tf.image.decode_image(tf.read_file(path3), 1)}, {'output': out})
 
-input1 = Input(shape=in_shape, dtype='int32', name='input1')
-input2 = Input(shape=in_shape, dtype='int32', name='input2')
-input_base = Input(shape=in_shape, dtype='int32', name='input_base')
+input1 = Input(shape=in_shape, dtype='uint8', name='input1')
+input2 = Input(shape=in_shape, dtype='uint8', name='input2')
+input_base = Input(shape=in_shape, dtype='uint8', name='input_base')
 
 conv_layer = Conv2D(16, (3, 3), padding='same', activation='relu')
 
