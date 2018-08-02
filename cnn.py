@@ -19,27 +19,44 @@ def compare(x):
     imgs1 = x[:][:][:][0:dims[3]/2]
     imgs2 = x[:][:][:][dims[3]/2:]
 
-    for b in range(dims[0]):
-        img_arr = tf.zeros((0, 0, 0))
-        for i in range(dims[3]/2):
-            img1 = imgs1[b][:][:][i]
-            img2 = imgs2[b][:][:][i]
+    imgs_out = []
 
-            for r in range(5):
-                x_coord = dims[1]-comp_filter_size
-                y_coord = dims[2]-comp_filter_size
-    
-    img_new = tf.nn.conv2d(img2, filter)
+    for b in range(dims[0]):
+        img1 = imgs1[b]
+        img2 = tf.expand_dims(imgs2[b], 0)
+
+        filters_k = []
+
+        for f in range(comp_filter_size):
+            
+            for i in range(dims[3]/2):
+                x_coord = np.random.randint(0, dims[1]-comp_filter_size)
+                y_coord = np.random.randint(0, dims[2]-comp_filter_size)
+                filter_new = img1[x_coord:x_coord+comp_filter_size][y_coord:y_coord+comp_filter_size][i]
+
+                if i == 0:
+                    filters = filter_new
+                else:
+                    filters = np.concatenate((filters, filter_new), 2)
+            
+            filters_k.append(filters)
+
+        img_new = tf.nn.conv2d(img2, tf.stack(filters_k, 3), [1, 1, 1, 1], 'SAME')
+        imgs_out.append(img_new)
+
+    return tf.parallel_stack(imgs_out)
 
 def get_imgs(path):
     for file in os.listdir(os.fsencode(path)):
         filename = os.fsdecode(file)
         parts = filename.split('_')
+        
         if parts[1] == '0':
             out = parts[2][0]
             path1 = path+'/'+filename
             path2 = path+'/'+parts[0]+'_1_'+parts[2]
             path3 = path+'/'+parts[0]+'_2_'+parts[2]
+
             yield ({'input1': tf.image.decode_image(tf.read_file(path1), 1), 
                     'input2': tf.image.decode_image(tf.read_file(path2), 1), 
                     'input_base': tf.image.decode_image(tf.read_file(path3), 1)}, {'output': out})
